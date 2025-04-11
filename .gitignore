@@ -175,3 +175,6 @@ cython_debug/
 
 # Vector store
 faiss*
+
+# Stub Typings
+typings/*
