@@ -1,0 +1,54 @@
+{
+  "questions": [
+    {
+      "id": 1,
+      "pergunta": "Qual foi o investimento total do Brasil em educação pública em 2022, e o que isso representa em relação ao PIB?",
+      "resposta_esperada": "Foram investidos cerca de R$ 361 bilhões, o equivalente a 5,6% do PIB nacional."
+    },
+    {
+      "id": 2,
+      "pergunta": "Qual é a média global de investimento em educação segundo a UNESCO (2023)?",
+      "resposta_esperada": "A média global é de 4,4% do PIB."
+    },
+    {
+      "id": 3,
+      "pergunta": "Quais são as taxas de alfabetização por região no Brasil de acordo com o IBGE?",
+      "resposta_esperada": "Sudeste: acima de 96%; Norte e Nordeste: abaixo de 90%."
+    },
+    {
+      "id": 4,
+      "pergunta": "Qual foi o valor do IDEB nacional para os anos iniciais do ensino fundamental em 2021?",
+      "resposta_esperada": "O IDEB foi de 5,8."
+    },
+    {
+      "id": 5,
+      "pergunta": "Qual o percentual de estudantes matriculados em instituições públicas de ensino superior no Brasil?",
+      "resposta_esperada": "23% dos estudantes estão matriculados em instituições públicas."
+    },
+    {
+      "id": 6,
+      "pergunta": "Qual a taxa de evasão universitária estimada no Brasil?",
+      "resposta_esperada": "Cerca de 40% dos estudantes abandonam os cursos antes da conclusão."
+    },
+    {
+      "id": 7,
+      "pergunta": "Segundo o Todos Pela Educação, qual foi o índice de conclusão do ensino médio até os 19 anos?",
+      "resposta_esperada": "O índice de conclusão foi de 68%."
+    },
+    {
+      "id": 8,
+      "pergunta": "Qual é o salário médio dos professores da rede pública brasileira e como ele se compara à média da OCDE?",
+      "resposta_esperada": "R$ 3.850 no Brasil, enquanto a média da OCDE é de aproximadamente R$ 18 mil mensais."
+    },
+    {
+      "id": 9,
+      "pergunta": "Qual é a porcentagem de escolas públicas brasileiras com laboratórios de informática e internet de qualidade?",
+      "resposta_esperada": "Menos de 45% têm laboratórios de informática funcionais, e apenas 35% têm internet de qualidade."
+    },
+    {
+      "id": 10,
+      "pergunta": "Qual foi a pontuação da Estônia no PISA 2018 em leitura, matemática e ciências?",
+      "resposta_esperada": "Leitura: 523, Matemática: 530, Ciências: 528."
+    }
+  ]
+}
