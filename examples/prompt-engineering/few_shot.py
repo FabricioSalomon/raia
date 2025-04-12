@@ -3,7 +3,7 @@ import os
 from typing import List, NotRequired, Optional, TypedDict, cast
 
 import dotenv
-from datasets import load_dataset
+from datasets import load_dataset  # type: ignore
 from langchain.chat_models import init_chat_model
 from langchain_core.prompts import ChatPromptTemplate, FewShotChatMessagePromptTemplate
 
@@ -47,8 +47,8 @@ response = llm.invoke(
                c) Curitiba\
                d) São Paulo\
                e) Natal\
-        Considere um nível de dificuldade alta, pode ser de qualquer matéria, mas invente algo coerente com o nível ensino médio!\
-        Não gere a resposta dessa questão, apenas a pergunta.
+        Considere um nível de dificuldade alta, uma questão de matemática, mas invente algo coerente com o nível ensino médio para vestibular!\
+        Garanta que a resposta seja uma das alternativas geradas! 
 """
 )
 
@@ -66,7 +66,7 @@ for line in data_typed:
     }
     examples.append(example)
 
-example_prompt = ChatPromptTemplate.from_messages(
+example_prompt = ChatPromptTemplate.from_messages( # type: ignore
     [
         ("human", "{question_number}: {question}\n{image_description}\n{alternatives}"),
         ("ai", "{answer}"),
@@ -78,7 +78,7 @@ few_shot_prompt = FewShotChatMessagePromptTemplate(
     example_prompt=example_prompt,
 )
 
-final_prompt = ChatPromptTemplate.from_messages(
+final_prompt = ChatPromptTemplate.from_messages( # type: ignore
     [
         ("system", "Você é o melhor aluno da melhor universidade do mundo."),
         few_shot_prompt,
