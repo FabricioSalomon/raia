@@ -1,7 +1,7 @@
-from enum import Enum
-from typing import Literal, NotRequired, Optional, Required, Union
-from typing_extensions import TypedDict
+from typing import NotRequired, Optional, Required, Union
+
 from pydantic import UUID4
+from typing_extensions import TypedDict
 
 from shared.enums.subjects import SubjectEnum, SubjectLiteral
 from shared.enums.universities import UniversityEnum, UniversityLiteral

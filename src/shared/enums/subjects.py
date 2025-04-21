@@ -17,11 +17,17 @@ class SubjectEnum(Enum):
     HISTORY = "history"
     BIOLOGY = "biology"
     GEOGRAPHY = "geography"
+    OTHER = "other"
 
 
 SubjectLiteral = Literal[
     "math",
+    "other",
     "biology",
     "history",
     "geography",
 ]
+
+
+class Subject(BaseModel):
+    enum: SubjectEnum

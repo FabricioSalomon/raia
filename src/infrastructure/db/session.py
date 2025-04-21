@@ -1,12 +1,11 @@
-from typing import Generator
+import os
+from collections.abc import Generator
+
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.orm import Session
-import os
+from sqlalchemy.orm import Session, sessionmaker
 
 from infrastructure.db.config import Settings
-
 
 settings = Settings(
     DB_USER=os.getenv("DB_USER", ""),

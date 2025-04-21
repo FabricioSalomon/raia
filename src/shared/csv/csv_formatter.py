@@ -1,8 +1,8 @@
 import os
 import re
+from collections.abc import Hashable
 from typing import (
     Dict,
-    Hashable,
     List,
     Literal,
     Optional,
@@ -12,13 +12,12 @@ from typing import (
     cast,
     get_type_hints,
 )
-from typing_extensions import TypedDict
-import pandas as pd
 
+import pandas as pd
+from typing_extensions import TypedDict
 
 from src.exceptions.generic import GenericException
 from src.shared.csv.generate_csv_data import GenerateData
-
 
 T = TypeVar("T", str, int, float, bool)
 
@@ -63,9 +62,9 @@ class CSVFormatter(GenerateData):
         if self.data is None:
             raise GenericException("The file is empty.", {"file_path": self.file_path})
         for index, row in self.data.iterrows():
-            text_value: bool = row.get("is_discursive", False)
-            if text_value:
-                continue
+            # text_value: bool = row.get("is_discursive", False)
+            # if text_value:
+            #     continue
             filled = self._fill_missing(
                 current_row=row,
                 column="subject",
@@ -73,7 +72,8 @@ class CSVFormatter(GenerateData):
             )
             if not filled:
                 continue
-            print(f"Filled with: {filled}")
+            print(f"Filled with: [{index}] = {filled}")
+        self.data.to_csv("info.csv", index=False)
 
     def _fill_missing(
         self,
@@ -111,7 +111,7 @@ class CSVFormatter(GenerateData):
         if text_value.startswith("("):
             subject_from_text = self._extract_last_word_in_parens(text_value)
             if subject_from_text:
-                fill_value = subject_from_text
+                fill_value = subject_from_text.lower()
         else:
             alternatives = [
                 current_row.get("A", ""),
@@ -124,9 +124,7 @@ class CSVFormatter(GenerateData):
         return fill_value
 
     def _handle_no_subject_available(
-        self,
-        text_value: str,
-        alternatives: List[str]
+        self, text_value: str, alternatives: List[str]
     ) -> str:
         try:
             generated_subject = self.invoke(text_value, alternatives)

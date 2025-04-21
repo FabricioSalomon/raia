@@ -1,10 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 
 from infrastructure.db.session import get_db
 
-
 from .generate import generate_questions_router
-
 
 questions_router = APIRouter(
     prefix="/questions",

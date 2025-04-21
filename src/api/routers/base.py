@@ -1,10 +1,11 @@
+import logging
 from abc import ABC, abstractmethod
 from typing import List
 
-from api.schemas.questions import QuestionResponse, Payload
+from api.schemas.questions import Payload, QuestionResponse
 
-import logging
 log = logging.getLogger(__name__)
+
 
 class GenerateInterface(ABC):
     @abstractmethod

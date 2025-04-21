@@ -1,12 +1,11 @@
-from typing import List, Literal, Optional, Union, cast
 import getpass
 import os
+from typing import List, Literal, Optional, cast
 
 import dotenv
-
 from langchain.chat_models import init_chat_model
 
-from src.shared.enums.subjects import Subjects
+from src.shared.enums.subjects import Subject, SubjectEnum
 
 dotenv.load_dotenv()
 
@@ -15,7 +14,7 @@ class LLM:
     def __init__(self, model_name: str):
         self.model_name = model_name
 
-    def gpt_invoke(self, text: str) -> Optional[Union[Subjects, str]]:
+    def gpt_invoke(self, text: str) -> Optional[str]:
         if not os.environ.get("OPENAI_API_KEY"):
             os.environ["OPENAI_API_KEY"] = getpass.getpass("Enter API key for OpenAI: ")
 
@@ -24,10 +23,9 @@ class LLM:
             model_provider="openai",
         )
 
-        llm_structured = llm.with_structured_output(Subjects)
-        response_structured = cast(Subjects, llm_structured.invoke(text))
-        breakpoint()
-        if response_structured.other == True:
+        llm_structured = llm.with_structured_output(Subject)
+        response_structured = cast(Subject, llm_structured.invoke(text))
+        if response_structured.enum == SubjectEnum.OTHER:
             messages = [
                 {
                     "role": "ai",
@@ -44,11 +42,11 @@ class LLM:
                 },
             ]
             response = llm.invoke(messages)
-            breakpoint()
             if response and response.content and isinstance(response.content, str):
-                return response.content
-
-        return response_structured
+                response_structured = cast(
+                    Subject, llm_structured.invoke(response.content)
+                )
+        return response_structured.enum.value.lower()
 
     def gemini_invoke(self, text: str) -> str:
         return f"Processed by GEMINI: {text}"
@@ -74,4 +72,5 @@ class GenerateData(LLM):
         for alternative_text in alternatives:
             text = text + f", {alternative_text}"
         data = hash_map[self.model](text)
-        return f"GenerateData processed: {data} using {self.model}:{self.model_name}"
+        print(f"GenerateData processed: {data} using {self.model}: {self.model_name}")
+        return data
