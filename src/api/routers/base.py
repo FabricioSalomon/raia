@@ -1,8 +1,9 @@
 from abc import ABC, abstractmethod
-import logging
 from typing import List
-from .model import Payload, QuestionResponse
 
+from api.schemas.questions import QuestionResponse, Payload
+
+import logging
 log = logging.getLogger(__name__)
 
 class GenerateInterface(ABC):

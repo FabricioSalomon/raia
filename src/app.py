@@ -1,9 +1,11 @@
 from fastapi import FastAPI
-from .routers.questions.index import questions_router
+
+from infrastructure.logging_config import setup_logging
+from src.api.routers.questions import questions_router
+
+setup_logging()
 
 app = FastAPI()
-
-
 app.include_router(questions_router)
 
 

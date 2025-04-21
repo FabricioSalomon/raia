@@ -3,25 +3,8 @@ from typing import Literal, NotRequired, Optional, Required, Union
 from typing_extensions import TypedDict
 from pydantic import UUID4
 
-
-class SubjectEnum(Enum):
-    GEOGRAPHY = "geography"
-    HISTORY = "history"
-    MATH = "math"
-
-
-SubjectLiteral = Literal[
-    "geography",
-    "history",
-    "math",
-]
-
-
-class UniversityEnum(Enum):
-    USP = "USP"
-
-
-UniversityLiteral = Literal["USP"]
+from shared.enums.subjects import SubjectEnum, SubjectLiteral
+from shared.enums.universities import UniversityEnum, UniversityLiteral
 
 
 class QuestionResponse(TypedDict):

@@ -1,2 +1,0 @@
-class QuestionsService:
-    pass
