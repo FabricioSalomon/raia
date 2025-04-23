@@ -3,7 +3,7 @@ from typing import List
 
 from fastapi import APIRouter
 
-from api.schemas.questions import Payload, QuestionResponse
+from src.api.schemas.questions import Payload, QuestionResponse
 
 generate_questions_router = APIRouter()
 

@@ -1,6 +1,6 @@
 from sqlalchemy import UUID, Column
 
-from infrastructure.db.session import Base
+from src.infrastructure.db.session import Base
 
 
 class Question(Base):

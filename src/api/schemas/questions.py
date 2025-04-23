@@ -3,8 +3,8 @@ from typing import NotRequired, Optional, Required, Union
 from pydantic import UUID4
 from typing_extensions import TypedDict
 
-from shared.enums.subjects import SubjectEnum, SubjectLiteral
-from shared.enums.universities import UniversityEnum, UniversityLiteral
+from src.shared.enums.subjects import SubjectEnum, SubjectLiteral
+from src.shared.enums.universities import UniversityEnum, UniversityLiteral
 
 
 class QuestionResponse(TypedDict):

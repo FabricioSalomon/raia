@@ -51,6 +51,7 @@ class CSVFormatter(GenerateData):
     def __init__(
         self, file_path: str, model: Literal["GPT", "GEMINI", "CLAUDE"], model_name: str
     ) -> None:
+        self.column: str = ""
         self.file_path: str = file_path
         self.data: pd.DataFrame = self._read_csv_with_header()
         super().__init__(
@@ -65,9 +66,14 @@ class CSVFormatter(GenerateData):
             # text_value: bool = row.get("is_discursive", False)
             # if text_value:
             #     continue
+            # filled = self._fill_missing(
+            #     current_row=row,
+            #     column="subject",
+            #     current_index=index,
+            # )
             filled = self._fill_missing(
                 current_row=row,
-                column="subject",
+                column="source",
                 current_index=index,
             )
             if not filled:
@@ -94,7 +100,8 @@ class CSVFormatter(GenerateData):
         if not self._is_empty(row_value=fill_value):
             return
         fill_value = cast(AvailableTypes, fill_value)
-        if column == "subject":
+        self.column = column
+        if self.column == "subject" or self.column == "source":
             fill_value = self._generate_data_using_text_column(fill_value, current_row)
 
         if self._is_wrong_type_data(value=fill_value, type=column_type):
@@ -109,21 +116,30 @@ class CSVFormatter(GenerateData):
     ):
         text_value = current_row.get("text", "")
         if text_value.startswith("("):
-            subject_from_text = self._extract_last_word_in_parens(text_value)
-            if subject_from_text:
+            words = self._extract_words_in_parens(text_value)
+            source_from_text = words[0] + f" {words[1]}"
+            subject_from_text = words[-1]
+            if source_from_text and self.column == "source":
+                fill_value = source_from_text.upper()
+            if subject_from_text and self.column == "subject":
                 fill_value = subject_from_text.lower()
         else:
-            alternatives = [
-                current_row.get("A", ""),
-                current_row.get("B", ""),
-                current_row.get("C", ""),
-                current_row.get("D", ""),
-                current_row.get("E", ""),
-            ]
-            fill_value = self._handle_no_subject_available(text_value, alternatives)
+            if self.column == "source":
+                fill_value = "AI"
+            else:
+                alternatives = [
+                    current_row.get("A", ""),
+                    current_row.get("B", ""),
+                    current_row.get("C", ""),
+                    current_row.get("D", ""),
+                    current_row.get("E", ""),
+                ]
+                fill_value = self._handle_no_column_data_available(
+                    text_value, alternatives
+                )
         return fill_value
 
-    def _handle_no_subject_available(
+    def _handle_no_column_data_available(
         self, text_value: str, alternatives: List[str]
     ) -> str:
         try:
@@ -140,7 +156,7 @@ class CSVFormatter(GenerateData):
                 },
             )
 
-    def _extract_last_word_in_parens(self, text: str) -> str:
+    def _extract_words_in_parens(self, text: str) -> List[str]:
         if not text.startswith("("):
             raise ValueError("Text column does not start with a parenthesis '('")
 
@@ -152,7 +168,7 @@ class CSVFormatter(GenerateData):
         words_list: List[str] = inside_parens.split()
 
         if words_list:
-            return words_list[-1]
+            return words_list
         else:
             raise ValueError("No words found inside the parentheses")
 
@@ -194,7 +210,7 @@ class CSVFormatter(GenerateData):
 
 base_dir = os.path.dirname(os.path.abspath(__file__))
 assets_dir = os.path.join(base_dir, "../../../assets")
-file_path = os.path.join(assets_dir, "exported_questions.csv")
+file_path = os.path.join(assets_dir, "info.csv")
 test = CSVFormatter(
     file_path=file_path,
     model="GPT",

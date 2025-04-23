@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 
-from infrastructure.db.session import get_db
+from src.infrastructure.db.session import get_db
 
 from .generate import generate_questions_router
 
