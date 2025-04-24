@@ -1,8 +1,13 @@
 pandas
+faiss-cpu
 fastapi
 langchain
+langchain-chroma
+langchain-community
+langchain-experimental
 langchain-openai
 psycopg2-binary
 pydantic-settings
+pypdf2
 sqlalchemy
 shed
