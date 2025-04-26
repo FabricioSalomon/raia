@@ -5,8 +5,7 @@ from fastapi import APIRouter, File, Form, UploadFile
 from fastapi.responses import JSONResponse
 from pydantic import ValidationError
 
-from src.api.schemas.ingestion import IngestionMetadata
-from src.domain.services.ingestion import IngestionService
+from src.domain.services.vector_store.ingestion import IngestionService
 from src.exceptions.api.bad_request import BadRequestException
 from src.exceptions.api.internal_server import InternalServerErrorException
 from src.shared.enums.vector_store import VectorStoreEnum
@@ -17,21 +16,19 @@ upload_router = APIRouter()
 @upload_router.post("/upload")
 async def upload_documents(
     files: List[UploadFile] = File(...),
-    metadata: Optional[str] = Form(None),
+    column_to_embed: str = Form(...),
+    vector_store_path: Optional[str] = Form(None),
+    vector_store: Optional[VectorStoreEnum] = Form(None),
 ):
     try:
-        parsed_metadata = IngestionMetadata(
-            vector_store=VectorStoreEnum.faiss,
-            column_to_ingest="text",
+
+        ingestion_service = IngestionService(
+            vector_store=vector_store,
         )
-        if metadata:
-            metadata_dict = json.loads(metadata)
-            parsed_metadata = IngestionMetadata(**metadata_dict)
-        ingestion_service = IngestionService()
-        await ingestion_service.process(
+        await ingestion_service.invoke(
             files=files,
-            vector_store=parsed_metadata.vector_store,
-            column_to_ingest=parsed_metadata.column_to_ingest,
+            column_to_embed=column_to_embed,
+            vector_store_path=vector_store_path,
         )
 
         return JSONResponse(

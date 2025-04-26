@@ -13,7 +13,9 @@ from typing import (
 )
 
 import pandas as pd
+from langchain.prompts import FewShotPromptTemplate, PromptTemplate
 from langchain_core.language_models import BaseChatModel
+from langchain_core.messages import BaseMessage
 from pydantic import BaseModel
 from typing_extensions import TypedDict
 
@@ -57,6 +59,7 @@ QuestionRowTypeHints = Dict[str, Type[AvailableTypes]]
 class CSV:
     def __init__(self, file_path: str) -> None:
         self.column: str = "text"
+        self.llm_structured = None
         self.file_path: str = file_path
         self.data: pd.DataFrame = self._read_csv_with_header()
         self.model: Models = "openai"
@@ -71,123 +74,238 @@ class CSV:
             raise GenericException("The file is empty.", {"file_path": self.file_path})
         self.model = model
         self.model_name = model_name
+        self._define_few_shot_template(column)
         for index, row in self.data.iterrows():
             # text_value: bool = row.get("is_discursive", False)
             # if text_value:
             #     continue
+
             fill_value: Optional[AvailableTypes] = row[column]
+            if not self._is_empty(row_value=fill_value):
+                continue
+            self.column = column
             filled = self._fill_missing(
                 current_row=row,
-                column=column,
                 current_index=index,
                 fill_value=fill_value,
             )
             if not filled:
                 continue
             print(f"Filled with: [{index}] = {filled}")
-        self.data.to_csv("../../assets/info.csv", index=False)
+        # self.data.to_csv("assets/info.csv", index=False)
+        self.data.to_csv("assets/info2.csv", index=False)
         return self.data
+
+    def _define_few_shot_template(self, column):
+        fewshot_examples = []
+        for index, row in self.data.iterrows():
+            if (
+                column == "category"
+                and not self._is_nan(row.get("category"))
+                and len(fewshot_examples) < 200
+            ):
+                fewshot_examples.append(
+                    {"question": row["text"], "category": row["category"]}
+                )
+            if (
+                column == "subcategory"
+                and not self._is_nan(row.get("subcategory"))
+                and len(fewshot_examples) < 200
+            ):
+                fewshot_examples.append(
+                    {"question": row["text"], "subcategory": row["subcategory"]}
+                )
+        breakpoint()
+        # Define an example prompt template
+        example_prompt = """
+            Enunciado: {question}
+            Categoria da questão: {category}
+        """.strip()
+
+        # Define the prefix and suffix of the prompt
+        prefix = """
+            Considere as possíveis disciplinas de ensino médio para assuntos de vestibulares como: USP, UFSCar e ENEM.
+            Extraia da questão fornecida qual categoria de assunto da disciplina ela faz referência.
+            Exemplo: "Qual é a fórmula de Bhaskara?" -> "Equações do 2º grau"
+            
+            !!!!! Responda com 6 tokens !!!!!!
+        """.strip()
+
+        suffix = """
+            Enunciado: {input_question}
+            Categoria da questão:
+        """.strip()
+
+        self.fewshot_prompt = FewShotPromptTemplate(
+            examples=fewshot_examples,
+            example_prompt=PromptTemplate.from_template(example_prompt),
+            prefix=prefix,
+            suffix=suffix,
+            input_variables=["input_question"],
+        )
 
     def _fill_missing(
         self,
-        column: str,
         current_row: pd.Series,
         current_index: Hashable,
         fill_value: Optional[AvailableTypes],
     ) -> Optional[AvailableTypes]:
-        if column not in self.data.columns:
-            raise ValueError(f"Column '{column}' does not exist in the DataFrame.")
+        if self.column not in self.data.columns:
+            raise ValueError(f"Column '{self.column}' does not exist in the DataFrame.")
 
         type_hints: QuestionRowTypeHints = get_type_hints(QuestionRow)
-        column_type = type_hints.get(column)
+        column_type = type_hints.get(self.column)
 
         if not column_type:
-            raise ValueError(f"Column '{column}' not found in QuestionRow annotations.")
-
-        if not self._is_empty(row_value=fill_value):
-            return
+            raise ValueError(
+                f"Column '{self.column}' not found in QuestionRow annotations."
+            )
 
         fill_value = cast(AvailableTypes, fill_value)
-        self.column = column
-        if self.column == "subject" or self.column == "source":
+        if self.column in {"subject", "source", "category", "subcategory"}:
             fill_value = self._generate_data_using_text_column(fill_value, current_row)
 
         if self._is_wrong_type_data(value=fill_value, type=column_type):
             raise TypeError(
-                f"Expected {column_type} for column '{column}', but got {type(fill_value)}."
+                f"Expected {column_type} for column '{self.column}', but got {type(fill_value)}."
             )
-        self.data.at[current_index, column] = fill_value
+        self.data.at[current_index, self.column] = fill_value
         return fill_value
 
     def _generate_data_using_text_column(
         self, fill_value: AvailableTypes, current_row: pd.Series
     ):
         text_value = current_row.get("text", "")
-        if text_value.startswith("("):
-            words = self._extract_words_in_parens(text_value)
-            source_from_text = words[0] + f" {words[1]}"
-            subject_from_text = words[-1]
-            if source_from_text and self.column == "source":
-                fill_value = source_from_text.upper()
-            if subject_from_text and self.column == "subject":
-                fill_value = subject_from_text.lower()
+        if text_value.startswith("(") and self.column not in {
+            "category",
+            "subcategory",
+        }:
+            fill_value = self._extract_info_in_parentheses(text_value)
         else:
-
-            if self.column == "source":
-                fill_value = "AI"
-            else:
-                self.llm = LLM(
-                    model=self.model,
-                    model_name=self.model_name,
-                    temperature=0.0,
-                    max_tokens=100,
-                ).llm
-                alternatives = [
-                    current_row.get("A", ""),
-                    current_row.get("B", ""),
-                    current_row.get("C", ""),
-                    current_row.get("D", ""),
-                    current_row.get("E", ""),
-                ]
-
-                if self.column == "subject":
-                    self.llm_structured = self.llm.with_structured_output(Subject)
-
-                fill_value = self._handle_no_column_data_available(
-                    text_value, alternatives
-                )
+            column_to_data_map = {
+                "source": "AI",
+                "subject": self._generate_using_llm(current_row, text_value),
+                "category": self._generate_using_llm(current_row, text_value),
+                "subcategory": self._generate_using_llm(current_row, text_value),
+            }
+            fill_value = column_to_data_map.get(self.column, "other")
         return fill_value
 
+    def _generate_using_llm(self, current_row, text_value):
+        self.llm = LLM(
+            model=self.model,
+            model_name=self.model_name,
+            temperature=0.0,
+            max_tokens=100,
+        ).llm
+        alternatives = [
+            current_row.get("A", ""),
+            current_row.get("B", ""),
+            current_row.get("C", ""),
+            current_row.get("D", ""),
+            current_row.get("E", ""),
+        ]
+
+        discursive_answer = current_row.get("answer_text", "")
+        if self.column == "subject":
+            self.llm_structured = self.llm.with_structured_output(Subject)
+        value = self._handle_no_column_data_available(
+            text_value=text_value,
+            alternatives=alternatives,
+            discursive_answer=discursive_answer,
+        )
+
+        return value
+
+    def _extract_info_in_parentheses(self, text_value):
+        words = self._extract_words_in_parens(text_value)
+        source_from_text = words[0] + f" {words[1]}"
+        subject_from_text = words[-1]
+        if source_from_text and self.column == "source":
+            return source_from_text.upper()
+        if subject_from_text and self.column == "subject":
+            return subject_from_text.lower()
+        return "other"
+
     def _handle_no_column_data_available(
-        self, text_value: str, alternatives: List[str]
+        self,
+        text_value: str,
+        alternatives: List[str],
+        discursive_answer: Optional[str],
     ) -> str:
         self.llm = cast(BaseChatModel, self.llm)
-        try:
+        prompt = text_value
+        if discursive_answer:
+            prompt = f"{text_value} {discursive_answer}"
+        if len(alternatives) > 0:
             for alternative_text in alternatives:
-                text_value = text_value + f", {alternative_text}"
-            response_structured: BaseEnum = cast(
-                BaseEnum, self.llm_structured.invoke(text_value)
-            )
-            if self._is_subject_enum_other(response_structured):
-                messages = [
-                    {
-                        "role": "ai",
-                        "content": """
-                            Considere as possíveis disciplinas de ensino médio para assuntos de vestibulares como: USP, UFSCar e ENEM.
-                            Qual a disciplina da questão? 
-                            
-                            !!!!! Responda com uma palavra apenas !!!!!!
-                        """,
-                    },
-                    {
-                        "role": "human",
-                        "content": text_value,
-                    },
-                ]
-                response = self.llm.invoke(messages)
-                if response and response.content and isinstance(response.content, str):
-                    return response.content.lower()
-            return response_structured.enum.value.lower()
+                if alternative_text and not self._is_nan(alternative_text):
+                    prompt = f"{prompt}, {alternative_text}"
+        try:
+            llm = self.llm
+            if self.llm_structured is not None:
+                llm = self.llm_structured
+                response = llm.invoke(prompt)
+                if isinstance(response, Subject) and self._is_subject_enum_other(
+                    response
+                ):
+                    if not self._is_subject_enum_other(response):
+                        subject_response = cast(Subject, response)
+                        return subject_response.enum.name.lower()
+                    messages = [
+                        {
+                            "role": "ai",
+                            "content": """
+                                Considere as possíveis disciplinas de ensino médio para assuntos de vestibulares como: USP, UFSCar e ENEM.
+                                Qual a disciplina da questão? 
+                                
+                                !!!!! Responda com uma palavra apenas !!!!!!
+                            """,
+                        },
+                        {
+                            "role": "human",
+                            "content": prompt,
+                        },
+                    ]
+                    response = self.llm.invoke(messages)
+                    if (
+                        response
+                        and response.content
+                        and isinstance(response.content, str)
+                    ):
+                        return response.content.lower()
+
+            # llm_with_few_shot = self.fewshot_prompt | self.llm | StrOutputParser()
+            # response = llm_with_few_shot.invoke({
+            #     "input_question": text_value,
+            # })
+            # breakpoint()
+            messages = [
+                {
+                    "role": "ai",
+                    "content": """
+                        Considere as possíveis disciplinas de ensino médio para assuntos de vestibulares como: USP, UFSCar e ENEM.
+                        Extraia da questão fornecida qual categoria de assunto da disciplina ela faz referência.
+                        Exemplo: "Qual é a fórmula de Bhaskara?" -> "Equações do 2º grau"
+                        
+                        ### Importante:
+                        - Seja conciso e claro.
+                        - Não use palavras desnecessárias.
+                        - A categoria deve ser extraída do enunciado da questão.
+                        
+                        !!!!! Responda com 4 palavras !!!!!!
+                    """,
+                },
+                {
+                    "role": "human",
+                    "content": prompt,
+                },
+            ]
+            response = self.llm.invoke(messages)
+            if response and response.content and isinstance(response.content, str):
+                return response.content.lower()
+            base_reponse = cast(BaseMessage, response)
+            return cast(str, base_reponse.content)
         except Exception as e:
             raise GenericException(
                 "Error generating subject via LLM",

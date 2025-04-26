@@ -5,12 +5,12 @@ from fastapi import APIRouter, Form
 from fastapi.responses import JSONResponse
 from pydantic import ValidationError
 
+from src.domain.services.vector_store.retrieve import RetrieveService
 from src.exceptions.api.bad_request import BadRequestException
 from src.exceptions.api.internal_server import InternalServerErrorException
-from src.infrastructure.vector_store.faiss import FaissVectorStore
 from src.shared.enums.subjects import SubjectLiteral
 from src.shared.enums.universities import UniversityLiteral
-from src.shared.llm import LLM
+from src.shared.enums.vector_store import VectorStoreEnum
 
 retrieve_router = APIRouter()
 
@@ -18,18 +18,19 @@ retrieve_router = APIRouter()
 @retrieve_router.post("/retrieve")
 async def retrieve_questions(
     message: str = Form(None),
-    university: Optional[UniversityLiteral] = Form(None),
     subject: Optional[SubjectLiteral] = Form(None),
+    university: Optional[UniversityLiteral] = Form(None),
+    vector_store_name: Optional[str] = Form("faiss_index"),
+    vector_store: Optional[VectorStoreEnum] = Form(VectorStoreEnum.faiss),
 ):
     try:
-        LLM(
-            model="openai",
-            model_name="gpt-4o",
+        service = RetrieveService(vector_store=vector_store)
+        response = service.invoke(
+            message,
+            subject=subject,
+            university=university,
+            vector_store_name=vector_store_name,
         )
-        faiss_store = FaissVectorStore()
-        faiss_store.load_local("faiss_index")
-
-        response = faiss_store.similarity_search(message)
 
         return JSONResponse(
             content={

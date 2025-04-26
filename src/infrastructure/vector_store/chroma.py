@@ -1,14 +1,16 @@
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 from langchain.embeddings.base import Embeddings
 from langchain_chroma.vectorstores import Chroma
 from langchain_core.documents import Document
 
 from src.infrastructure.vector_store.base import BaseVectorStore
+from src.shared.enums.vector_store import VectorStoreEnum
 
 
 class ChromaVectorStore(BaseVectorStore):
     def __init__(self, collection_name: str, embedding: Embeddings):
+        self.store_type = VectorStoreEnum.chroma
         self.collection_name = collection_name
         self.embedding = embedding
         self.store = Chroma(
@@ -23,6 +25,20 @@ class ChromaVectorStore(BaseVectorStore):
 
     def similarity_search(self, query: str, k: int = 4) -> List[Document]:
         return self.store.similarity_search(query, k=k)
+
+    def similarity_search_with_relevance_scores(
+        self,
+        query: str,
+        k: int = 4,
+        score_threshold: Optional[float] = 0.7,
+        filter: Optional[dict] = None,
+    ) -> List[Tuple[Document, float]]:
+        return self.store.similarity_search_with_relevance_scores(
+            query=query,
+            k=k,
+            score_threshold=score_threshold,
+            filter=filter,
+        )
 
     def delete(self, ids: List[str]) -> None:
         self.store.delete(ids)
