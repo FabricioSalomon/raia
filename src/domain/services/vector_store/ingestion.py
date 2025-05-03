@@ -56,42 +56,28 @@ class IngestionService:
             if not handler:
                 raise ValueError(f"Unsupported file type: {extension}")
 
+            self.file_metadata = {
+                "file_type": extension,
+                "file_name": file.filename,
+                "file_size": len(contents),
+            }
             text = handler(contents)
             chunks: List[Document] = []
             if extension == ".csv" and column_to_embed:
                 dataframe = cast(pd.DataFrame, text)
                 for index, row in dataframe.iterrows():
-                    column_data = row[column_to_embed]
-                    chunk = [
-                        Document(
-                            page_content=column_data,
-                            metadata={
-                                "question_id": row["id"],
-                                "source": file.filename,
-                                "subject": row["subject"],
-                                "university": row["source"].split()[0],
-                                "metadata": {
-                                    "file_name": file.filename,
-                                    "file_type": extension,
-                                    "file_size": len(contents),
-                                },
-                            },
-                        )
-                    ]
-                    self.store.add_documents(chunk)
+                    self._ingest_csv_column(
+                        row=row,
+                        column_to_embed=column_to_embed,
+                    )
             else:
                 text = cast(str, text)
                 chunks = self.splitter.create_documents(
-                    [text],
-                    [
+                    texts=[text],
+                    metadatas=[
                         {
-                            "source": file.filename,
-                            "metadata": {
-                                "file_name": file.filename,
-                                "file_type": extension,
-                                "file_size": len(contents),
-                            },
-                        }
+                            "file_metadata": self.file_metadata,
+                        },
                     ],
                 )
                 self.store.add_documents(chunks)
@@ -99,6 +85,25 @@ class IngestionService:
         self.store.save_local(
             f"./assets/{self.store.store_type.value}/{vector_store_path}"
         )
+
+    def _ingest_csv_column(
+        self,
+        row: pd.Series,
+        column_to_embed: str,
+    ):
+        column_data = row[column_to_embed]
+        chunk = [
+            Document(
+                page_content=column_data,
+                metadata={
+                    "question_id": row["id"],
+                    "subject": row["subject"],
+                    "university": row["source"].split()[0],
+                    "file_metadata": self.file_metadata,
+                },
+            )
+        ]
+        self.store.add_documents(chunk)
 
     def _handle_txt(self, content: bytes) -> str:
         return content.decode("utf-8")

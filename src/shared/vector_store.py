@@ -23,6 +23,8 @@ class VectorStoreFactory:
         }
 
         if store_type is None or store_type not in vector_store_map:
-            raise ValueError(f"Unsupported vector store: {store_type}")
+            raise ValueError(
+                f"Unsupported vector store: {store_type}. Available: {list(vector_store_map.keys())}"
+            )
 
         return vector_store_map[store_type]
